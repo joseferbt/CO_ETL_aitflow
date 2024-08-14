@@ -18,15 +18,15 @@ def data_warehouse_etl():
 
         @task
         def extract_dimpersona():
-            hook = PostgresHook(postgres_conn_id='source_postgres')
-            df1 = hook.get_pandas_df("SELECT * FROM table1;")
+            hook = PostgresHook(postgres_conn_id='source')
+            df1 = hook.get_pandas_df("SELECT * FROM ips;")
             df2 = hook.get_pandas_df("SELECT * FROM table2;")
-            return df1, df2
+            return df1
 
         @task
         def extract_dimmedico():
             hook = PostgresHook(postgres_conn_id='source_postgres')
-            df = hook.get_pandas_df("SELECT * FROM medicos_table;")
+            df = hook.get_pandas_df("SELECT * FROM medico;")
             return df
 
         dimpersona_data = extract_dimpersona()
@@ -37,14 +37,14 @@ def data_warehouse_etl():
 
         @task
         def transform_dimpersona(data):
-            df1, df2 = data
-            df_merged = pd.merge(df1, df2, on="id")
+            df1 = data
+            df_merged = df1
             return df_merged
 
         @task
         def transform_dimmedico(df):
             # Apply some transformations to dimmedico data
-            df['new_column'] = df['existing_column'] * 2
+            df['new_column'] = df['licencia'] * 2
             return df
 
         transformed_dimpersona = transform_dimpersona(dimpersona_data)
@@ -55,7 +55,8 @@ def data_warehouse_etl():
 
         @task
         def load_dimpersona(df):
-            hook = PostgresHook(postgres_conn_id='dest_postgres')
+            hook = PostgresHook(postgres_conn_id='dest')
+            hook.run("create table if not exists dimpersona();")
             hook.insert_rows(table='dimpersona', rows=df.values.tolist(), target_fields=df.columns.tolist())
 
         @task
